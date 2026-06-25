@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PanoView 全景查看器</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+  :root{
+    --bg:#0a0a0f;--panel:#12121a;--accent:#c9a050;--accent2:#8b7355;
+    --text:#e8e4dc;--text2:#9a9590;--border:#2a2a35;--hover:#1e1e28;
+    --glass:rgba(18,18,26,0.85);--shadow:0 8px 32px rgba(0,0,0,0.4);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+  .viewer-container{position:relative;width:100%;height:100vh;overflow:hidden}
+
+  /* 全景画布占位 */
+  .pano-canvas{
+    position:absolute;inset:0;
+    background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pano-canvas::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 30% 50%,rgba(201,160,80,0.08) 0%,transparent 60%),
+               radial-gradient(ellipse at 70% 30%,rgba(139,115,85,0.06) 0%,transparent 50%);
+    pointer-events:none;
+  }
+  .pano-placeholder{
+    text-align:center;opacity:0.6;
+  }
+  .pano-placeholder svg{width:120px;height:120px;opacity:0.3;margin-bottom:20px}
+  .pano-placeholder p{font-size:14px;color:var(--text2);letter-spacing:2px}
+
+  /* 顶部导航 */
+  .top-bar{
+    position:absolute;top:0;left:0;right:0;height:56px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);z-index:100;
+    display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  }
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo-icon{width:32px;height:32px;border:2px solid var(--accent);border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--accent);
+    font-family:'Noto Serif SC',serif;font-weight:700}
+  .logo-text{font-family:'Noto Serif SC',serif;font-size:18px;font-weight:600;color:var(--text)}
+  .logo-sub{font-size:11px;color:var(--text2);margin-left:8px}
+  .top-actions{display:flex;align-items:center;gap:12px}
+  .btn{
+    padding:8px 18px;border-radius:6px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text2);font-size:13px;cursor:pointer;
+    transition:all 0.3s;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:6px
+  }
+  .btn:hover{background:var(--hover);color:var(--text);border-color:var(--accent2)}
+  .btn-primary{background:var(--accent);color:#1a1a1a;border-color:var(--accent);font-weight:500}
+  .btn-primary:hover{background:#d4aa5a}
+
+  /* 场景缩略图侧边栏 */
+  .scene-sidebar{
+    position:absolute;left:0;top:56px;bottom:0;width:220px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border-right:1px solid var(--border);z-index:90;
+    padding:16px;overflow-y:auto;
+    transform:translateX(0);transition:transform 0.3s;
+  }
+  .scene-sidebar.hidden{transform:translateX(-100%)}
+  .sidebar-title{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:2px;margin-bottom:16px}
+  .scene-item{
+    display:flex;align-items:center;gap:12px;padding:10px;border-radius:8px;
+    cursor:pointer;transition:all 0.2s;margin-bottom:8px;border:1px solid transparent;
+  }
+  .scene-item:hover{background:var(--hover);border-color:var(--border)}
+  .scene-item.active{background:rgba(201,160,80,0.1);border-color:var(--accent)}
+  .scene-thumb{width:56px;height:40px;border-radius:6px;background:linear-gradient(135deg,#2a2a3e,#1e1e2e);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text2)}
+  .scene-info{flex:1}
+  .scene-name{font-size:13px;color:var(--text);font-weight:500}
+  .scene-desc{font-size:11px;color:var(--text2);margin-top:2px}
+
+  /* 小地图 */
+  .minimap{
+    position:absolute;right:24px;top:76px;width:180px;height:140px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border:1px solid var(--border);border-radius:12px;z-index:90;
+    padding:12px;
+  }
+  .minimap-title{font-size:11px;color:var(--text2);margin-bottom:8px;display:flex;justify-content:space-between}
+  .minimap-canvas{
+    width:100%;height:100px;background:linear-gradient(135deg,#1e1e2e,#2a2a3e);border-radius:8px;
+    position:relative;overflow:hidden;
+  }
+  .minimap-canvas::after{
+    content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:8px;height:8px;background:var(--accent);border-radius:50%;
+    box-shadow:0 0 12px rgba(201,160,80,0.5);
+  }
+  .minimap-label{position:absolute;bottom:4px;left:8px;font-size:9px;color:var(--text2)}
+
+  /* 底部控制栏 */
+  .bottom-controls{
+    position:absolute;bottom:0;left:0;right:0;height:64px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);z-index:100;
+    display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  }
+  /* 后期处理控制栏 */
+  .pp-controls{
+    position:absolute;bottom:64px;left:0;right:0;height:48px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border-top:1px solid var(--border);z-index:99;
+    display:flex;align-items:center;gap:16px;padding:0 24px;
+    font-size:13px;
+  }
+  .pp-group{display:flex;align-items:center;gap:8px}
+  .pp-label{color:var(--text2);font-size:12px;white-space:nowrap}
+  .pp-select{
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;
+    color:var(--text);padding:4px 8px;font-size:12px;outline:none;cursor:pointer;
+  }
+  .pp-select:hover{border-color:var(--accent2)}
+  .pp-slider{
+    -webkit-appearance:none;width:80px;height:4px;background:var(--border);border-radius:2px;outline:none;
+  }
+  .pp-slider::-webkit-slider-thumb{
+    -webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);cursor:pointer;
+  }
+  .pp-value{color:var(--accent);font-size:11px;min-width:28px;text-align:right}
+  .control-group{display:flex;align-items:center;gap:8px}
+  .control-btn{
+    width:40px;height:40px;border-radius:10px;border:1px solid var(--border);
+    background:var(--panel);color:var(--text2);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;transition:all 0.2s;
+    font-size:16px;
+  }
+  .control-btn:hover{background:var(--hover);color:var(--text)}
+  .control-btn.active{background:rgba(201,160,80,0.15);color:var(--accent);border-color:var(--accent2)}
+  .control-hint{font-size:12px;color:var(--text2);margin-left:16px}
+
+  /* 热点标记 */
+  .hotspot-marker{
+    position:absolute;width:36px;height:36px;z-index:80;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .hotspot-marker::before{
+    content:'';position:absolute;width:12px;height:12px;background:var(--accent);border-radius:50%;
+    box-shadow:0 0 20px rgba(201,160,80,0.6);animation:pulse 2s infinite;
+  }
+  .hotspot-marker::after{
+    content:'';position:absolute;width:36px;height:36px;border:2px solid var(--accent);border-radius:50%;
+    opacity:0.3;animation:ripple 2s infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+  @keyframes ripple{0%{transform:scale(0.5);opacity:0.6}100%{transform:scale(1.5);opacity:0}}
+
+  /* 热点提示 */
+  .hotspot-tooltip{
+    position:absolute;background:var(--glass);backdrop-filter:blur(12px);
+    border:1px solid var(--border);border-radius:8px;padding:8px 14px;
+    font-size:12px;color:var(--text);z-index:85;pointer-events:none;
+    opacity:0;transition:opacity 0.3s;white-space:nowrap;
+  }
+  .hotspot-marker:hover + .hotspot-tooltip{opacity:1}
+
+  /* 信息面板 */
+  .info-panel{
+    position:absolute;right:24px;bottom:88px;width:280px;
+    background:var(--glass);backdrop-filter:blur(20px);
+    border:1px solid var(--border);border-radius:16px;z-index:90;
+    padding:20px;transform:translateY(0);transition:transform 0.3s;
+  }
+  .info-panel.hidden{transform:translateY(calc(100% + 24px))}
+  .info-title{font-family:'Noto Serif SC',serif;font-size:18px;margin-bottom:12px;color:var(--text)}
+  .info-desc{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px}
+  .info-meta{display:flex;gap:16px;font-size:11px;color:var(--text2)}
+  .info-meta span{display:flex;align-items:center;gap:4px}
+
+  /* 全屏切换按钮 */
+  .fullscreen-btn{
+    position:absolute;right:24px;top:76px;width:40px;height:40px;z-index:95;
+    background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);
+    border-radius:10px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:all 0.2s;font-size:18px;
+  }
+  .fullscreen-btn:hover{color:var(--text);background:var(--hover)}
+
+  /* 响应式 */
+  @media(max-width:768px){
+    .scene-sidebar{width:180px}
+    .minimap,.info-panel{display:none}
+    .top-actions .btn span{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="viewer-container">
+  <!-- 全景画布 -->
+  <div class="pano-canvas">
+    <div class="pano-placeholder">
+      <svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="1" opacity="0.3"/><circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="1" opacity="0.2"/><circle cx="60" cy="60" r="20" stroke="currentColor" stroke-width="1" opacity="0.15"/><path d="M60 10 L60 30 M60 90 L60 110 M10 60 L30 60 M90 60 L110 60" stroke="currentColor" stroke-width="1" opacity="0.2"/></svg>
+      <p>拖拽旋转 · 滚轮缩放 · 点击热点</p>
+    </div>
+    <!-- 热点标记 -->
+    <div class="hotspot-marker" style="left:35%;top:40%"></div>
+    <div class="hotspot-tooltip" style="left:35%;top:40%;transform:translate(-50%,-45px)">明伦堂</div>
+    <div class="hotspot-marker" style="left:65%;top:55%"></div>
+    <div class="hotspot-tooltip" style="left:65%;top:55%;transform:translate(-50%,-45px)">书院简介</div>
+    <div class="hotspot-marker" style="left:50%;top:30%"></div>
+    <div class="hotspot-tooltip" style="left:50%;top:30%;transform:translate(-50%,-45px)">雪漠书院·夜</div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon">全</div>
+      <div>
+        <span class="logo-text">雪漠书院</span>
+        <span class="logo-sub">全景漫游</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <a href="../PanoEditor/editor-prototype.html" class="btn">✎ 编辑器</a>
+      <a href="../PanoManager/admin-prototype.html" class="btn">⚙ 管理后台</a>
+      <button class="btn btn-primary" onclick="share()">↗ 分享</button>
+    </div>
+  </div>
+
+  <!-- 场景侧边栏 -->
+  <div class="scene-sidebar" id="sceneSidebar">
+    <div class="sidebar-title">场景导航</div>
+    <div class="scene-item active">
+      <div class="scene-thumb">全景</div>
+      <div class="scene-info">
+        <div class="scene-name">雪漠书院</div>
+        <div class="scene-desc">主场景 · 白天</div>
+      </div>
+    </div>
+    <div class="scene-item">
+      <div class="scene-thumb">夜景</div>
+      <div class="scene-info">
+        <div class="scene-name">雪漠书院·夜</div>
+        <div class="scene-desc">夜景模式</div>
+      </div>
+    </div>
+    <div class="scene-item">
+      <div class="scene-thumb">建筑</div>
+      <div class="scene-info">
+        <div class="scene-name">明伦堂</div>
+        <div class="scene-desc">核心建筑</div>
+      </div>
+    </div>
+    <div class="scene-item">
+      <div class="scene-thumb">介绍</div>
+      <div class="scene-info">
+        <div class="scene-name">书院简介</div>
+        <div class="scene-desc">历史文化</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 小地图 -->
+  <div class="minimap">
+    <div class="minimap-title"><span>平面图</span><span style="font-size:10px;color:var(--accent)">● 当前位置</span></div>
+    <div class="minimap-canvas">
+      <div class="minimap-label">雪漠书院平面布局</div>
+    </div>
+  </div>
+
+  <!-- 信息面板 -->
+  <div class="info-panel" id="infoPanel">
+    <div class="info-title">雪漠书院</div>
+    <div class="info-desc">雪漠书院位于甘肃省武威市凉州区，是一座集文化传承、学术研究、艺术展示于一体的综合性文化场馆。书院建筑融合传统与现代设计理念，展现河西走廊深厚的历史文化底蕴。</div>
+    <div class="info-meta">
+      <span>📍 武威市凉州区</span>
+      <span>📷 26 个场景</span>
+      <span>👁 12,345 次浏览</span>
+    </div>
+  </div>
+
+  <!-- 后期处理控制栏 -->
+  <div class="pp-controls">
+    <div class="pp-group">
+      <span class="pp-label">🎨 风格</span>
+      <select class="pp-select" id="ppStyle" onchange="applyPPStyle(this.value)">
+        <option value="natural">自然</option>
+        <option value="vivid">鲜艳</option>
+        <option value="warm">暖色</option>
+        <option value="cool">冷色</option>
+        <option value="cinematic">电影感</option>
+        <option value="hdr">HDR</option>
+        <option value="night">夜景</option>
+        <option value="vintage">复古</option>
+        <option value="blackwhite">黑白</option>
+        <option value="cyberpunk">赛博朋克</option>
+      </select>
+    </div>
+    <div class="pp-group">
+      <span class="pp-label">LUT</span>
+      <select class="pp-select" id="ppLUT" onchange="applyLUT(this.value)">
+        <option value="">无</option>
+        <option value="film-look">胶片感</option>
+        <option value="teal-orange">青橙色调</option>
+        <option value="warm-glow">暖光</option>
+        <option value="cool-mist">冷雾</option>
+      </select>
+    </div>
+    <div class="pp-group">
+      <span class="pp-label">曝光</span>
+      <input type="range" class="pp-slider" min="0.5" max="2.0" step="0.1" value="1.0" id="ppExposure" oninput="updatePPValue(this,'expVal')">
+      <span class="pp-value" id="expVal">1.0</span>
+    </div>
+    <div class="pp-group">
+      <span class="pp-label">对比度</span>
+      <input type="range" class="pp-slider" min="0.5" max="2.0" step="0.1" value="1.0" id="ppContrast" oninput="updatePPValue(this,'conVal')">
+      <span class="pp-value" id="conVal">1.0</span>
+    </div>
+    <div class="pp-group" style="margin-left:auto">
+      <button class="control-btn" style="width:32px;height:32px;font-size:12px" title="重置后期处理" onclick="resetPP()">↺</button>
+    </div>
+  </div>
+
+  <!-- 底部控制栏 -->
+  <div class="bottom-controls">
+    <div class="control-group">
+      <button class="control-btn" title="上一场景">←</button>
+      <button class="control-btn" title="下一场景">→</button>
+      <span class="control-hint">拖拽旋转 · 滚轮缩放</span>
+    </div>
+    <div class="control-group">
+      <button class="control-btn active" title="全景模式" onclick="toggleMode(this)">🌐</button>
+      <button class="control-btn" title="飞行模式" onclick="toggleMode(this)">✈</button>
+      <button class="control-btn" title="VR 模式">🥽</button>
+      <button class="control-btn" title="自动漫游">▶</button>
+      <button class="control-btn" title="全屏" onclick="toggleFullscreen()">⛶</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleFullscreen(){
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+}
+function toggleMode(btn){
+  document.querySelectorAll('.control-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function share(){
+  alert('分享链接已复制到剪贴板！\nhttps://panoview.com/v/733012');
+}
+function applyPPStyle(style){
+  console.log('应用后期处理风格:',style);
+}
+function applyLUT(lut){
+  console.log('应用LUT:',lut||'无');
+}
+function updatePPValue(slider,labelId){
+  document.getElementById(labelId).textContent=slider.value;
+}
+function resetPP(){
+  document.getElementById('ppStyle').value='natural';
+  document.getElementById('ppLUT').value='';
+  document.getElementById('ppExposure').value='1.0';
+  document.getElementById('ppContrast').value='1.0';
+  document.getElementById('expVal').textContent='1.0';
+  document.getElementById('conVal').textContent='1.0';
+}
+// 场景切换
+ document.querySelectorAll('.scene-item').forEach(item=>{
+  item.addEventListener('click',function(){
+    document.querySelectorAll('.scene-item').forEach(i=>i.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
