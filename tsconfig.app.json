@@ -20,6 +20,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@panoview": ["../PanoViewV2/src/panoview/index"],
       "@panoview/*": ["../PanoViewV2/src/panoview/*"]
     }
   },
