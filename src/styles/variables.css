@@ -1,0 +1,53 @@
+:root {
+  /* 主色调 */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a26;
+  --bg-overlay: rgba(10, 10, 15, 0.85);
+
+  /* 金色点缀 */
+  --accent: #c9a050;
+  --accent-hover: #ddb060;
+  --accent-dim: rgba(201, 160, 80, 0.3);
+  --accent-glow: rgba(201, 160, 80, 0.15);
+
+  /* 文字 */
+  --text-primary: #e8e8ec;
+  --text-secondary: #9a9ab0;
+  --text-muted: #5a5a70;
+
+  /* 边框 */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(201, 160, 80, 0.3);
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  /* 过渡 */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* 侧边栏 */
+  --sidebar-width: 220px;
+
+  /* 信息面板 */
+  --info-panel-width: 280px;
+
+  /* 小地图 */
+  --minimap-width: 180px;
+  --minimap-height: 140px;
+
+  /* 顶部栏 */
+  --topbar-height: 52px;
+
+  /* 底部控制栏 */
+  --bottom-controls-height: 56px;
+}

@@ -1,0 +1,149 @@
+/** 项目 */
+export interface Project {
+  id: string
+  name: string
+  description: string
+  coverUrl: string
+  scenes: Scene[]
+  settings: ProjectSettings
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProjectSettings {
+  autoRotate: boolean
+  autoRotateSpeed: number
+  defaultFov: number
+  minFov: number
+  maxFov: number
+  enableCompass: boolean
+}
+
+/** 场景 */
+export interface Scene {
+  id: string
+  projectId: string
+  name: string
+  description: string
+  thumbUrl: string
+  previewUrl: string
+  imageConfig: string
+  status: string
+  pitch: number
+  yaw: number
+  hfov: number
+  hotspots: Hotspot[]
+  metadata: Record<string, string>
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/** 热点 */
+export interface Hotspot {
+  id: string
+  sceneId: string
+  type: HotspotType
+  name: string
+  description: string
+  pitch: number
+  yaw: number
+  targetSceneId?: string
+  icon?: string
+  /** 后端样式键（custom-image / custom-web / map-pin / pulsing-dot 等），驱动引擎渲染路径 */
+  styleName?: string
+  style?: HotspotStyle
+  tooltip?: string
+  points?: string
+  url?: string
+  width?: number
+  height?: number
+  scale?: number
+  rotate?: string
+  content?: string
+  followZoom?: boolean
+  onclick?: string
+  visible?: boolean
+  sortOrder?: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type HotspotType = 'scene' | 'info' | 'link' | 'image' | 'video' | 'web' | 'model' | 'quad'
+
+export interface HotspotStyle {
+  iconColor: string
+  iconSize: number
+  animation: 'pulse' | 'bounce' | 'none'
+}
+
+/** 场景光照配置（后端 scene_lighting_configs） */
+export interface LightingConfig {
+  id: string
+  sceneId: string
+  /** HDR 环境贴图地址（null = 默认 RoomEnvironment） */
+  envMapUrl: string | null
+  /** 环境照明开关（false = 完全禁用 IBL） */
+  envMapEnabled: boolean
+  sunEnabled: boolean
+  sunAzimuth: number
+  sunElevation: number
+  sunIntensity: number
+  sunColor: string
+}
+
+/** 后期处理 */
+export interface PostProcessingConfig {
+  style: string
+  lut: string
+  exposure: number
+  contrast: number
+  brightness: number
+  saturation: number
+}
+
+/** 统计上报 */
+export interface StatsPayload {
+  projectId: string
+}
+
+/** API 通用响应 */
+export interface ApiResponse<T> {
+  code: number
+  message: string
+  data: T
+}
+
+/** 分页响应 */
+export interface PaginatedResponse<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+/** 查看器模式 */
+export type ViewerMode = 'panorama' | 'flight'
+
+/** 小地图标记 */
+export interface MinimapMarker {
+  sceneId: string
+  x: number
+  y: number
+  label: string
+  active: boolean
+}
+
+/** LUT 选项 */
+export interface LutOption {
+  id: string
+  name: string
+  previewUrl: string
+}
+
+/** 风格选项 */
+export interface StyleOption {
+  id: string
+  name: string
+  previewUrl: string
+}
