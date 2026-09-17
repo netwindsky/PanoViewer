@@ -24,9 +24,10 @@ import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue'
 import { useSceneStore } from '@/stores/scene'
 import { useViewerStore } from '@/stores/viewer'
 import { PanoEngineAdapter } from '@/utils/PanoEngineAdapter'
+import { convertSceneToEngineData } from '@/utils/sceneDataBuilder'
 import { getPublicLighting, toSunConfig } from '@/api/lighting'
 import { getPostProcessingConfig } from '@/api/postprocessing'
-import type { LightingConfig, PostProcessingConfig } from '@/types'
+import type { LightingConfig, PostProcessingConfig, Scene } from '@/types'
 
 const sceneStore = useSceneStore()
 const viewerStore = useViewerStore()
@@ -55,22 +56,21 @@ function initEngine() {
   isFirstScene = true
 }
 
-function loadSceneConfig(scene: { imageConfig?: string; id?: string; hotspots?: any[] }) {
+function loadSceneConfig(scene: Scene) {
   if (!panoEngine) return
   if (!scene.imageConfig) {
     console.warn('场景缺少 imageConfig 配置')
     return
   }
-  try {
-    const config = JSON.parse(scene.imageConfig)
-    panoEngine.loadSceneConfig(config)
+  // 使用 sceneDataBuilder 统一转换：支持 initialView / viewConfig / imageConfig.view 优先级链
+  const sceneData = convertSceneToEngineData(scene)
+  if (sceneData) {
+    panoEngine.loadSceneConfig(sceneData)
+  }
 
-    // 同步热点到引擎 3D 场景（替代 DOM 标注，跟随相机旋转）
-    if (scene.hotspots && scene.hotspots.length > 0) {
-      panoEngine.syncHotspots(scene.hotspots)
-    }
-  } catch (e) {
-    console.error('解析场景 imageConfig 失败:', e)
+  // 同步热点到引擎 3D 场景（替代 DOM 标注，跟随相机旋转）
+  if (scene.hotspots && scene.hotspots.length > 0) {
+    panoEngine.syncHotspots(scene.hotspots)
   }
 }
 
@@ -116,6 +116,7 @@ async function loadScenePostProcessing(sceneId: string) {
     panoEngine.applyPostConfig({
       enabled: config.enabled ?? false,
       presetStyle: config.presetStyle ?? 'original',
+      toneMapping: config.toneMapping ?? 'none',
       exposure: config.exposure ?? 1.0,
       contrast: config.contrast ?? 1.0,
       saturation: config.saturation ?? 1.0,

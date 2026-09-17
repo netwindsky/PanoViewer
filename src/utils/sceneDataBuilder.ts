@@ -37,18 +37,34 @@ function toNum(v: unknown, fallback: number): number {
   return fallback
 }
 
-/** 解析后端 initialView：支持 JSON 字符串 / 已解析对象 / null */
+/** 解析后端 initialView：优先级 scene.initialView > viewConfig.initialView，支持 JSON 字符串 / 已解析对象 / null */
 export function parseInitialView(scene: Scene): InitialViewConfig | null {
   const iv = (scene as any).initialView
-  if (iv == null) return null
-  if (typeof iv === 'string') {
+  if (iv != null) return parseInitialViewValue(iv)
+
+  // 兜底：后端 viewConfig 列持久化了 initialView（编辑器 patchToDto 双写）
+  const vc = scene.viewConfig
+  if (vc == null) return null
+  try {
+    const parsed = typeof vc === 'string' ? JSON.parse(vc) : vc
+    const inner = parsed?.initialView
+    if (inner != null) return parseInitialViewValue(inner)
+  } catch {
+    // viewConfig 解析失败，安全降级
+  }
+  return null
+}
+
+function parseInitialViewValue(v: unknown): InitialViewConfig | null {
+  if (v == null) return null
+  if (typeof v === 'string') {
     try {
-      return JSON.parse(iv) as InitialViewConfig
+      return JSON.parse(v) as InitialViewConfig
     } catch {
       return null
     }
   }
-  return iv as InitialViewConfig
+  return v as InitialViewConfig
 }
 
 /**

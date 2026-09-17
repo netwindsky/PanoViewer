@@ -19,6 +19,22 @@ export interface ProjectSettings {
   enableCompass: boolean
 }
 
+/** 初始视角配置（对齐编辑器 InitialView，字段来自后端 viewConfig JSON） */
+export interface InitialViewConfig {
+  yaw?: number
+  pitch?: number
+  hfov?: number
+  fov?: number
+  fovMin?: number
+  fovMax?: number
+  maxPixelZoom?: number
+  fovType?: string
+  fovtype?: string
+  limitView?: string
+  limitview?: string
+  [key: string]: unknown
+}
+
 /** 场景 */
 export interface Scene {
   id: string
@@ -28,6 +44,8 @@ export interface Scene {
   thumbUrl: string
   previewUrl: string
   imageConfig: string
+  /** 后端 viewConfig JSON 字符串，内含 initialView / lat / lng / heading / onstart */
+  viewConfig?: string | null
   status: string
   pitch: number
   yaw: number
@@ -111,6 +129,7 @@ export interface PostProcessingConfig {
   // 后端 DTO（/public/scenes/{id}/postprocessing）实际返回的字段，供 PanoCanvas 回放使用
   enabled?: boolean
   presetStyle?: string
+  toneMapping?: string
   colorTemperature?: number
   vignette?: number
   vignetteIntensity?: number

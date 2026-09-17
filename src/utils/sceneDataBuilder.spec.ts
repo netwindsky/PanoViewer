@@ -75,6 +75,73 @@ describe('buildSceneView — 初始视角', () => {
     expect(view.fovtype).toBe('MFOV')
   })
 
+  it('无 initialView 时从 viewConfig JSON 提取初始视角（后端持久化路径）', () => {
+    const scene = {
+      id: 's1',
+      viewConfig: JSON.stringify({
+        initialView: { yaw: 45, pitch: 10, hfov: 85 },
+        lat: '',
+        lng: '',
+        heading: '',
+        onstart: '',
+      }),
+    } as unknown as Scene
+    const view = buildSceneView(scene, {})
+    expect(view.hlookat).toBe('45')
+    expect(view.vlookat).toBe('10')
+    expect(view.fov).toBe('85')
+  })
+
+  it('viewConfig 为已解析对象时也能提取初始视角', () => {
+    const scene = {
+      id: 's1',
+      viewConfig: {
+        initialView: { yaw: -20, pitch: -5, hfov: 110, fovMin: 60, fovMax: 120 },
+      },
+    } as unknown as Scene
+    const view = buildSceneView(scene, {})
+    expect(view.hlookat).toBe('-20')
+    expect(view.vlookat).toBe('-5')
+    expect(view.fov).toBe('110')
+    expect(view.fovmin).toBe('60')
+    expect(view.fovmax).toBe('120')
+  })
+
+  it('viewConfig 无效 JSON 时安全降级到默认值', () => {
+    const scene = {
+      id: 's1',
+      viewConfig: '{bad json',
+    } as unknown as Scene
+    const view = buildSceneView(scene, {})
+    expect(view.hlookat).toBe('0')
+    expect(view.vlookat).toBe('0')
+    expect(view.fov).toBe('100')
+  })
+
+  it('viewConfig 内无 initialView 字段时降级到默认值', () => {
+    const scene = {
+      id: 's1',
+      viewConfig: JSON.stringify({ lat: '', lng: '' }),
+    } as unknown as Scene
+    const view = buildSceneView(scene, {})
+    expect(view.hlookat).toBe('0')
+    expect(view.vlookat).toBe('0')
+  })
+
+  it('initialView 优先级高于 viewConfig（direct > viewConfig > imageConfig > default）', () => {
+    const scene = {
+      id: 's1',
+      initialView: { yaw: 10, pitch: 5, hfov: 80 },
+      viewConfig: JSON.stringify({
+        initialView: { yaw: 99, pitch: 99, hfov: 99 },
+      }),
+    } as unknown as Scene
+    const view = buildSceneView(scene, {})
+    expect(view.hlookat).toBe('10')
+    expect(view.vlookat).toBe('5')
+    expect(view.fov).toBe('80')
+  })
+
   it('全部缺失时使用合理默认（与 DEFAULT_INITIAL_VIEW 对齐）', () => {
     const scene = { id: 's1' } as unknown as Scene
     const view = buildSceneView(scene, {})
