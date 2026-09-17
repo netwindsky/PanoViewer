@@ -34,6 +34,8 @@ interface PanoHotspot {
   tolerance?: number
   feather?: number
   followzoom?: string
+  modelForwardAxis?: string
+  shader?: string
   content: string
 }
 
@@ -125,6 +127,8 @@ export class PanoEngineAdapter {
       tolerance: undefined,
       feather: undefined,
       followzoom: hotspot.followZoom ? '1' : undefined,
+      modelForwardAxis: hotspot.modelForwardAxis || undefined,
+      shader: hotspot.shader || undefined,
       content: hotspot.content || '',
     }
   }

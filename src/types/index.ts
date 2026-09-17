@@ -60,6 +60,10 @@ export interface Hotspot {
   height?: number
   scale?: number
   rotate?: string
+  /** 模型视觉前方轴（'axis:sign'，如 'z:-1'），供 ModelHotspot 计算固有偏移 */
+  modelForwardAxis?: string
+  /** 模型热点着色器（grayscale / sepia / invert 等） */
+  shader?: string
   content?: string
   followZoom?: boolean
   onclick?: string

@@ -17,6 +17,8 @@ interface HotspotRaw {
   rotate?: string
   linkedSceneId?: string
   tooltip?: string
+  modelForwardAxis?: string
+  shader?: string
   content?: string
   followZoom?: boolean
   visible?: boolean
@@ -45,6 +47,8 @@ function mapHotspot(h: HotspotRaw): Hotspot {
     followZoom: h.followZoom,
     visible: h.visible ?? true,
     sortOrder: h.sortOrder,
+    modelForwardAxis: h.modelForwardAxis,
+    shader: h.shader,
   }
 }
 
