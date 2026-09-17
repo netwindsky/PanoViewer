@@ -90,6 +90,10 @@ export interface LightingConfig {
   sunElevation: number
   sunIntensity: number
   sunColor: string
+  /** 阴影开关 */
+  sunShadowsEnabled: boolean
+  /** 阴影透明度(0-1) */
+  sunShadowOpacity: number
 }
 
 /** 后期处理 */
@@ -100,6 +104,18 @@ export interface PostProcessingConfig {
   contrast: number
   brightness: number
   saturation: number
+  // 后端 DTO（/public/scenes/{id}/postprocessing）实际返回的字段，供 PanoCanvas 回放使用
+  enabled?: boolean
+  presetStyle?: string
+  colorTemperature?: number
+  vignette?: number
+  vignetteIntensity?: number
+  lutResourceId?: string | null
+  lutFileUrl?: string | null
+  lutIntensity?: number
+  bloomStrength?: number
+  bloomThreshold?: number
+  bloomRadius?: number
 }
 
 /** 统计上报 */

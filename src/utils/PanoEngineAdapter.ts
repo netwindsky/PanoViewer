@@ -211,15 +211,20 @@ export class PanoEngineAdapter {
    * 应用完整的后期处理配置（从后端表单模型映射到引擎参数）。
    * 字段映射：exposure → brightness = exposure - 1, contrast, saturation, colorTemperature ÷ 100
    */
-  public applyPostConfig(config: {
+   public applyPostConfig(config: {
     enabled: boolean
     presetStyle?: string
     exposure?: number
     contrast?: number
     saturation?: number
     colorTemperature?: number
+    vignette?: number
+    vignetteIntensity?: number
     lutFileUrl?: string | null
     lutIntensity?: number
+    bloomStrength?: number
+    bloomThreshold?: number
+    bloomRadius?: number
   }): void {
     const pp = this.engine.getPostProcessing()
     if (!pp) return
@@ -242,14 +247,18 @@ export class PanoEngineAdapter {
 
     const base = isBuiltinPreset ? pp.getEffectParams() : {
       brightness: 0, contrast: 1, saturation: 1, hueRotate: 0, sepia: 0,
-      temperature: 0, vignette: 0, grain: 0, noiseAmount: 0,
+      temperature: 0, vignette: 0, vignetteIntensity: 1, grain: 0, noiseAmount: 0,
     }
+    const vignette = typeof config.vignette === 'number' ? config.vignette : base.vignette
+    const vignetteIntensity = typeof config.vignetteIntensity === 'number' ? config.vignetteIntensity : base.vignetteIntensity
     pp.setEffectParams({
       ...base,
       brightness: exposure - 1,
       contrast,
       saturation,
       temperature: colorTemp / 100,
+      vignette,
+      vignetteIntensity,
     })
 
     // LUT
@@ -259,6 +268,12 @@ export class PanoEngineAdapter {
       pp.removeLut()
     }
     pp.setLutIntensity(typeof config.lutIntensity === 'number' ? config.lutIntensity : 1)
+
+    // Bloom
+    const bloomStrength = typeof config.bloomStrength === 'number' ? config.bloomStrength : 0
+    const bloomThreshold = typeof config.bloomThreshold === 'number' ? config.bloomThreshold : 0.8
+    const bloomRadius = typeof config.bloomRadius === 'number' ? config.bloomRadius : 0.5
+    pp.setBloomParams({ strength: bloomStrength, threshold: bloomThreshold, radius: bloomRadius })
   }
 
   /** 从 URL 加载 LUT 文件到引擎 */

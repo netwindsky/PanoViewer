@@ -120,6 +120,7 @@ async function loadScenePostProcessing(sceneId: string) {
       contrast: config.contrast ?? 1.0,
       saturation: config.saturation ?? 1.0,
       colorTemperature: config.colorTemperature ?? 0,
+      vignette: config.vignette ?? 0,
       lutFileUrl: config.lutFileUrl ?? null,
       lutIntensity: config.lutIntensity ?? 1,
     })

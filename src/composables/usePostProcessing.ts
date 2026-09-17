@@ -21,8 +21,10 @@ export function usePostProcessing(sceneId: Ref<string | null>) {
       contrast: cfg.contrast,
       saturation: cfg.saturation,
       colorTemperature: 0,
+      vignette: cfg.vignette ?? 0,
+      vignetteIntensity: (cfg as any).vignetteIntensity ?? 1,
       lutFileUrl: cfg.lut || null,
-      lutIntensity: 1,
+      lutIntensity: (cfg as any).lutIntensity ?? 1,
     })
   }
 

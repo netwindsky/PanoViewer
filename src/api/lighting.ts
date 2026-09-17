@@ -28,5 +28,7 @@ export function toSunConfig(lighting: LightingConfig): SunLightConfig {
     elevation: lighting.sunElevation,
     intensity: lighting.sunIntensity,
     color: lighting.sunColor,
+    shadows: lighting.sunShadowsEnabled ?? true,
+    shadowOpacity: lighting.sunShadowOpacity ?? 0.4,
   }
 }
